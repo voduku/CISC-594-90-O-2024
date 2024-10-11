@@ -8,22 +8,23 @@ import simpletron.model.OperationCode;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Scanner;
+import java.util.Queue;
 
 import static simpletron.model.Memory.isOpCode;
 
 @Data
 public class Simpletron {
-    private final Scanner scanner;
     private final Memory[] memory;
+    private final Queue<Integer> cmdInputs;
     private int accumulator;
     private int reservedMemoryLastIndex;
 
-    public Simpletron(@NonNull String filePath) {
-        this.scanner = new Scanner(System.in);
+    public Simpletron(@NonNull String filePath, Queue<Integer> cmdInputs) {
         this.memory = new Memory[100];
         this.accumulator = 0;
+        this.cmdInputs = cmdInputs;
         loadInstructionsIntoMemory(filePath);
     }
 
@@ -35,10 +36,13 @@ public class Simpletron {
             switch (OperationCode.fromCode(instruction.value())) {
                 case READ -> {
                     System.out.println("Enter an integer: ");
-                    memory[instMemLoc] = new Memory(scanner.nextInt(), instMemLoc);
+                    memory[instMemLoc] = new Memory(cmdInputs.remove(), instMemLoc);
                     i++;
                 }
-                case WRITE -> System.out.println("Output: " + memory[instMemLoc].value());
+                case WRITE -> {
+                    System.out.println("Output: " + memory[instMemLoc].value());
+                    i++;
+                }
                 case LOAD -> {
                     accumulator = memory[instMemLoc].value();
                     System.out.printf("Loaded %s into accumulator%n", accumulator);
@@ -86,6 +90,16 @@ public class Simpletron {
                     System.out.printf("Branched to instruction at memory location: %d%n", instMemLoc);
                 }
                 case HALT -> {
+                    System.out.printf("""
+                            REGISTERS:
+                            accumulator         %d
+                            instructionCounter  %d
+                            instructionRegister %d
+                            operationCode       %d
+                            operand             %d
+                            
+                            %s
+                            """.formatted(accumulator, reservedMemoryLastIndex + 1, instMemLoc, instruction.value(), instMemLoc, memoryToString()));
                     break loop;
                 }
             }
@@ -107,7 +121,7 @@ public class Simpletron {
 
             int opcode = Integer.parseInt(word.substring(1, 3));
             int memLoc = Integer.parseInt(word.substring(3));
-            if (0 <= memLoc || memLoc <= reservedMemoryLastIndex)
+            if (0 <= memLoc && memLoc <= reservedMemoryLastIndex && OperationCode.HALT.getCode() != opcode)
                 throw new IllegalArgumentException("Invalid operand (memory location): " + memLoc);
 
             if (OperationCode.HALT.getCode() == opcode) hasHalt = true;
@@ -115,5 +129,25 @@ public class Simpletron {
         }
 
         if (!hasHalt) throw new IllegalArgumentException("Instructions don't contain HALT");
+    }
+
+    private String memoryToString() {
+        Object[] memoryCopy = Arrays.stream(memory)
+                .map(m -> m != null ? m : new Memory(0, 0))
+                .map(Memory::toString)
+                .toArray(Object[]::new);
+        return """
+                       0     1     2     3     4     5     6     7     8     9
+                 0 %s %s %s %s %s %s %s %s %s %s
+                10 %s %s %s %s %s %s %s %s %s %s
+                20 %s %s %s %s %s %s %s %s %s %s
+                30 %s %s %s %s %s %s %s %s %s %s
+                40 %s %s %s %s %s %s %s %s %s %s
+                50 %s %s %s %s %s %s %s %s %s %s
+                60 %s %s %s %s %s %s %s %s %s %s
+                70 %s %s %s %s %s %s %s %s %s %s
+                80 %s %s %s %s %s %s %s %s %s %s
+                90 %s %s %s %s %s %s %s %s %s %s
+                """.formatted(memoryCopy);
     }
 }
