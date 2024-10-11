@@ -43,6 +43,10 @@ public class Simpletron {
                     System.out.println("Output: " + memory[instMemLoc].value());
                     i++;
                 }
+                case NEWLINE -> {
+                    System.out.println("Output: ---------");
+                    i++;
+                }
                 case LOAD -> {
                     accumulator = memory[instMemLoc].value();
                     System.out.printf("Loaded %s into accumulator%n", accumulator);
@@ -67,6 +71,7 @@ public class Simpletron {
                 }
                 case DIVIDE -> {
                     int value = memory[instMemLoc].value();
+                    if (value == 0) throw new ArithmeticException("Can't divide by zero");
                     accumulator /= value;
                     System.out.printf("Divided accumulator by %d%n", value);
                     i++;
@@ -75,6 +80,19 @@ public class Simpletron {
                     int value = memory[instMemLoc].value();
                     accumulator *= value;
                     System.out.printf("Multiplied accumulator by %d%n", value);
+                    i++;
+                }
+                case REMAINDER -> {
+                    int value = memory[instMemLoc].value();
+                    if (accumulator == 0) throw new ArithmeticException("Can't divide by zero");
+                    accumulator = value % accumulator;
+                    System.out.printf("Divided accumulator by %d and stored remainder%n", value);
+                    i++;
+                }
+                case EXPONENTIAL -> {
+                    int value = memory[instMemLoc].value();
+                    accumulator = Double.valueOf(Math.pow(accumulator, value)).intValue();
+                    System.out.printf("Exponentiated accumulator by %d%n", value);
                     i++;
                 }
                 case BRANCH -> {
